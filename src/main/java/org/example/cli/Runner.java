@@ -1,74 +1,68 @@
 package org.example.cli;
 
 import org.example.MergeSort;
+import org.example.QuickSort;
+import org.example.Select;
+import org.example.geometry.ClosestPair;
+import org.example.metrics.Metrics;
 
-import java.io.BufferedWriter;
-import java.nio.file.*;
-import java.util.*;
+import java.io.File;
+import java.util.Arrays;
+import java.util.Random;
 
 public class Runner {
-    static Map<String,String> parse(String[] args) {
-        Map<String,String> m = new LinkedHashMap<>();
-        for (String a : args) {
-            int i = a.indexOf('=');
-            if (i > 0) m.put(a.substring(0, i), a.substring(i + 1));
-        }
-        return m;
-    }
-
-    static int parseSizeToken(String tok) {
-        tok = tok.trim().toLowerCase();
-        int mul = 1;
-        if (tok.endsWith("k")) { mul = 1_000; tok = tok.substring(0, tok.length()-1); }
-        else if (tok.endsWith("m")) { mul = 1_000_000; tok = tok.substring(0, tok.length()-1); }
-        return Integer.parseInt(tok) * mul;
-    }
-
-    static int[] make(int n, long seed){
-        Random r = new Random(seed);
-        int[] a = new int[n];
-        for (int i = 0; i < n; i++) a[i] = r.nextInt(1_000_000) - 500_000;
-        return a;
-    }
-
     public static void main(String[] args) throws Exception {
-        Map<String,String> p = parse(args);
-        String algo    = p.getOrDefault("algo",  "merge");
-        String sizes   = p.getOrDefault("sizes", "1k,10k,100k");
-        int    reps    = Integer.parseInt(p.getOrDefault("reps", "3"));
-        long   seed    = Long.parseLong(p.getOrDefault("seed", "42"));
-        Path   outPath = Paths.get(p.getOrDefault("out",  "out/results.csv"));
-        if (outPath.getParent() != null) Files.createDirectories(outPath.getParent());
+        // Простейший парсер аргументов вида key=value
+        var map = new java.util.HashMap<String,String>();
+        for (String arg : args) {
+            String[] kv = arg.split("=",2);
+            if (kv.length==2) map.put(kv[0], kv[1]);
+        }
 
-        try (BufferedWriter w = Files.newBufferedWriter(outPath)) {
-            w.write("algo,n,run,nanos,ok,stats");
-            w.newLine();
+        String algo = map.getOrDefault("algo", "merge");
+        String sizesArg = map.getOrDefault("sizes", "100,1000");
+        int reps = Integer.parseInt(map.getOrDefault("reps","3"));
+        long seed = Long.parseLong(map.getOrDefault("seed","42"));
+        String outFile = map.getOrDefault("out", "result.csv");
 
-            for (String tok : sizes.split(",")) {
-                int n = parseSizeToken(tok);
-                int[] base = make(n, seed);
-                for (int run = 1; run <= reps; run++) {
-                    int[] a = Arrays.copyOf(base, base.length);
-                    long t0 = System.nanoTime();
-                    MergeSort.Stats st = MergeSort.sort(a);
-                    long t1 = System.nanoTime();
-                    boolean ok = MergeSort.isSorted(a);
+        int[] sizes = Arrays.stream(sizesArg.split(","))
+                .map(s -> s.replace("k","000"))
+                .mapToInt(Integer::parseInt)
+                .toArray();
 
-                    w.write(String.join(",",
-                            algo,
-                            Integer.toString(n),
-                            Integer.toString(run),
-                            Long.toString(t1 - t0),
-                            Boolean.toString(ok),
-                            "\"" + st + "\""
-                    ));
-                    w.newLine();
+        try (Metrics.Csv csv = new Metrics.Csv(new File(outFile),
+                "algo,n,cmp,copy,merges,inserts,depth,ok")) {
+            for (int n : sizes) {
+                Random r = new Random(seed);
+                int[] src = r.ints(n, -1_000_000, 1_000_000).toArray();
 
-                    System.out.printf("algo=%s n=%d run=%d time=%.3f ms ok=%s %s%n",
-                            algo, n, run, (t1 - t0)/1e6, ok, st);
+                for (int rep=0; rep<reps; rep++) {
+                    int[] a = Arrays.copyOf(src, src.length);
+                    Metrics.Ctr ctr = new Metrics.Ctr();
+
+                    boolean ok = switch (algo) {
+                        case "merge" -> {
+                            Metrics.enter(ctr);
+                            MergeSort.sort(a);
+                            Metrics.leave();
+                            yield MergeSort.isSorted(a);
+                        }
+                        case "quick" -> {
+                            QuickSort.sort(a);
+                            yield QuickSort.isSorted(a);
+                        }
+                        case "select" -> {
+                            int k = a.length/2;
+                            int v = Select.select(a, k);
+                            Arrays.sort(a);
+                            yield v == a[k];
+                        }
+                        default -> throw new IllegalArgumentException("Unknown algo: " + algo);
+                    };
+
+                    csv.row(algo, n, ctr.comparisons, ctr.copies, ctr.merges, ctr.inserts, ctr.maxDepth, ok);
                 }
             }
         }
-        System.out.println("CSV -> " + outPath.toAbsolutePath());
     }
 }
