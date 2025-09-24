@@ -1,8 +1,11 @@
 org\example\MergeSort.class
+org\example\metrics\Metrics$Ctr.class
 org\example\QuickSort.class
+org\example\metrics\Metrics$Csv.class
 example\cli\Runner.class
 org\example\Bench.class
 org\example\cli\Runner.class
 org\example\QuickSort$Stats.class
+org\example\metrics\Metrics.class
 org\example\App.class
 org\example\MergeSort$Stats.class
