@@ -1,4 +1,5 @@
 org\example\AppTest.class
+org\example\geometry\ClosestPairTest.class
 org\example\Bench.class
 org\example\QuickSortTest.class
 org\example\SelectTest.class
