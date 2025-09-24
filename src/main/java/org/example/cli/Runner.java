@@ -1,68 +1,80 @@
 package org.example.cli;
 
-import org.example.MergeSort;
-import org.example.QuickSort;
-import org.example.Select;
 import org.example.geometry.ClosestPair;
+import org.example.geometry.ClosestPair.Point;
+import org.example.geometry.ClosestPair.Result;
 import org.example.metrics.Metrics;
 
 import java.io.File;
-import java.util.Arrays;
-import java.util.Random;
+import java.util.*;
 
 public class Runner {
-    public static void main(String[] args) throws Exception {
-        // Простейший парсер аргументов вида key=value
-        var map = new java.util.HashMap<String,String>();
-        for (String arg : args) {
-            String[] kv = arg.split("=",2);
-            if (kv.length==2) map.put(kv[0], kv[1]);
+
+    private static Map<String,String> parseArgs(String[] args){
+        Map<String,String> m = new HashMap<>();
+        for (String a: args){
+            int i = a.indexOf('=');
+            if (i > 0) m.put(a.substring(0,i).trim(), a.substring(i+1).trim());
         }
+        return m;
+    }
 
-        String algo = map.getOrDefault("algo", "merge");
-        String sizesArg = map.getOrDefault("sizes", "100,1000");
-        int reps = Integer.parseInt(map.getOrDefault("reps","3"));
-        long seed = Long.parseLong(map.getOrDefault("seed","42"));
-        String outFile = map.getOrDefault("out", "result.csv");
+    private static int[] parseSizes(String s){
+        // поддержка "1k,5k,10000"
+        String[] parts = s.split(",");
+        int[] res = new int[parts.length];
+        for (int i=0;i<parts.length;i++){
+            String p = parts[i].trim().toLowerCase(Locale.ROOT);
+            int mul = 1;
+            if (p.endsWith("k")) { mul = 1_000; p = p.substring(0,p.length()-1); }
+            else if (p.endsWith("m")) { mul = 1_000_000; p = p.substring(0,p.length()-1); }
+            res[i] = Integer.parseInt(p) * mul;
+        }
+        return res;
+    }
 
-        int[] sizes = Arrays.stream(sizesArg.split(","))
-                .map(s -> s.replace("k","000"))
-                .mapToInt(Integer::parseInt)
-                .toArray();
+    private static Point[] makePoints(int n, Random rnd){
+        Point[] a = new Point[n];
+        for (int i=0;i<n;i++){
+            double x = rnd.nextDouble();
+            double y = rnd.nextDouble();
+            a[i] = new Point(x, y);
+        }
+        return a;
+    }
 
-        try (Metrics.Csv csv = new Metrics.Csv(new File(outFile),
-                "algo,n,cmp,copy,merges,inserts,depth,ok")) {
+    private static void runClosest(int[] sizes, int reps, long seed, File outFile) throws Exception {
+        if (outFile.getParentFile() != null) outFile.getParentFile().mkdirs();
+        try (Metrics.Csv csv = new Metrics.Csv(outFile, "algo,n,rep,timeMs,dist")) {
             for (int n : sizes) {
-                Random r = new Random(seed);
-                int[] src = r.ints(n, -1_000_000, 1_000_000).toArray();
-
-                for (int rep=0; rep<reps; rep++) {
-                    int[] a = Arrays.copyOf(src, src.length);
-                    Metrics.Ctr ctr = new Metrics.Ctr();
-
-                    boolean ok = switch (algo) {
-                        case "merge" -> {
-                            Metrics.enter(ctr);
-                            MergeSort.sort(a);
-                            Metrics.leave();
-                            yield MergeSort.isSorted(a);
-                        }
-                        case "quick" -> {
-                            QuickSort.sort(a);
-                            yield QuickSort.isSorted(a);
-                        }
-                        case "select" -> {
-                            int k = a.length/2;
-                            int v = Select.select(a, k);
-                            Arrays.sort(a);
-                            yield v == a[k];
-                        }
-                        default -> throw new IllegalArgumentException("Unknown algo: " + algo);
-                    };
-
-                    csv.row(algo, n, ctr.comparisons, ctr.copies, ctr.merges, ctr.inserts, ctr.maxDepth, ok);
+                for (int r = 1; r <= reps; r++) {
+                    Random rnd = new Random(seed + 1000L*n + r);
+                    Point[] pts = makePoints(n, rnd);
+                    long t0 = System.nanoTime();
+                    Result res = ClosestPair.closest(pts);
+                    long t1 = System.nanoTime();
+                    long ms = (t1 - t0) / 1_000_000L;
+                    csv.row("closest", n, r, ms, String.format(Locale.ROOT, "%.9f", res.dist()));
                 }
             }
+        }
+        System.out.println("Done. CSV -> " + outFile.getPath());
+    }
+
+    public static void main(String[] args) throws Exception {
+        Map<String,String> m = parseArgs(args);
+        String algo = m.getOrDefault("algo","merge");
+        int[] sizes = parseSizes(m.getOrDefault("sizes","1k,10k"));
+        int reps = Integer.parseInt(m.getOrDefault("reps","2"));
+        long seed = Long.parseLong(m.getOrDefault("seed","42"));
+        File out = new File(m.getOrDefault("out","out/out.csv"));
+
+        switch (algo) {
+            case "closest":
+                runClosest(sizes, reps, seed, out);
+                break;
+            default:
+                throw new IllegalArgumentException("Unknown algo: " + algo);
         }
     }
 }
