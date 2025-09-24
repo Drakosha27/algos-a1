@@ -1,0 +1,5 @@
+algo,n,run,nanos,ok,stats
+merge,1000,1,976800,true,"cmp=9252, copy=16579, merges=127, inserts=872"
+merge,1000,2,201900,true,"cmp=9252, copy=16579, merges=127, inserts=872"
+merge,10000,1,3341200,true,"cmp=123774, copy=237970, merges=2046, inserts=7952"
+merge,10000,2,2587800,true,"cmp=123774, copy=237970, merges=2046, inserts=7952"
