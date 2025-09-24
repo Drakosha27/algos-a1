@@ -1,0 +1,13 @@
+﻿# IntelliJ IDEA
+.idea/
+*.iml
+
+# Maven target build
+target/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
