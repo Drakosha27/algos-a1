@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="org.example.SelectTest" time="0.016" tests="2" errors="0" skipped="0" failures="0">
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="org.example.geometry.ClosestPairTest" time="0.075" tests="4" errors="0" skipped="0" failures="0">
   <properties>
     <property name="java.specification.version" value="21"/>
     <property name="sun.cpu.isalist" value="amd64"/>
@@ -58,6 +58,8 @@
     <property name="sun.io.unicode.encoding" value="UnicodeLittle"/>
     <property name="java.class.version" value="65.0"/>
   </properties>
-  <testcase name="randomMatchesSort" classname="org.example.SelectTest" time="0.008"/>
-  <testcase name="edgesAndDuplicates" classname="org.example.SelectTest" time="0.003"/>
+  <testcase name="edge_duplicatePoints_zeroDistance" classname="org.example.geometry.ClosestPairTest" time="0.006"/>
+  <testcase name="edge_twoPoints" classname="org.example.geometry.ClosestPairTest" time="0.002"/>
+  <testcase name="small_vs_bruteforce" classname="org.example.geometry.ClosestPairTest" time="0.044"/>
+  <testcase name="large_runs_fast_enough" classname="org.example.geometry.ClosestPairTest" time="0.018"/>
 </testsuite>

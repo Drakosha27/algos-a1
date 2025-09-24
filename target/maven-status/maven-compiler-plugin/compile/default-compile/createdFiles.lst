@@ -5,5 +5,8 @@ org\example\Bench.class
 org\example\cli\Runner.class
 org\example\QuickSort$Stats.class
 org\example\App.class
+org\example\geometry\ClosestPair.class
+org\example\geometry\ClosestPair$Point.class
 org\example\MergeSort$Stats.class
 org\example\Select.class
+org\example\geometry\ClosestPair$Result.class
