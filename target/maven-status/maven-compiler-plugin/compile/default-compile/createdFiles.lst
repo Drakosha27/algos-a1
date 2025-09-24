@@ -6,3 +6,4 @@ org\example\cli\Runner.class
 org\example\QuickSort$Stats.class
 org\example\App.class
 org\example\MergeSort$Stats.class
+org\example\Select.class
